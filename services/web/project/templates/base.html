@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Face App</title>
+    <link rel="stylesheet" href="/static/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.1.0/jquery.min.js"></script>
+    <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+</head>
+<section class="content">
+    <nav class="navbar navbar-light" style="background-color: #e3f2fd;">
+
+        <a class="navbar-brand" href="/">Upload Imagem</a>
+        <a class="navbar-brand" href="reconhecer">Reconhecimento</a>
+        <a class="navbar-brand" href="lista">Lista de Presenças</a>
+
+    </nav>
+    <header>
+        {% block header %}{% endblock %}
+    </header>
+    {% for message in get_flashed_messages() %}
+    <div class="flash">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+</section>

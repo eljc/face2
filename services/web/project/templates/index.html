@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+{% block content %}
+
+<body>
+    <div class="container">
+        <div class="row">
+            <h2>Selecione a Imagem para upload</h2>
+            <p>
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    <ul>
+                    {% for message in messages %}
+                      <li>{{ message }}</li>
+                    {% endfor %}
+                    </ul>
+                  {% endif %}
+                {% endwith %}
+            </p>
+            {% if filename %}
+            <div>
+                <img src="{{ url_for('display_image', filename=filename) }}">
+            </div>
+            {% endif %}
+            <form method="post" action="/" enctype="multipart/form-data">
+                <dl>
+                    <p>
+                        <input type="file" name="file" class="form-control" autocomplete="off" required>
+                    </p>
+                </dl>
+                <dl>
+                    <p>
+                        Nome :
+                        <input type="text" name="nome"  class="form-control" autocomplete="off" required>
+                    </p>
+                </dl>
+                <p>
+                    <input type="submit" value="Salvar" class="btn btn-info">
+                </p>
+            </form>
+        </div>
+        </div>
+</body>
+{% endblock %}

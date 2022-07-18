@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+<!--criamos um bloco de conteúdo a ser interpretado pelo python-->
+{% block conteudo %}
+<table class="table table-striped table-responsive table-bordered">
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>Hora</th>
+            <th>Data</th>
+        </tr>
+    </thead>
+    <tbody>
+        <!--criamos uma estrutura de repetição com o Jinja2 para preencher nossa tabela com os dados dos Acolhidos-->
+        {% for acolhido in acolhidos %}
+
+        <tr>
+            <td>{{ acolhido.nome }}</td>
+            <td>{{ acolhido.hora }}</td>
+            <td>{{ acolhido.data }}</td>
+        </tr>
+        {% endfor %}
+        <!--encerramos a estrutura de repetição-->
+    </tbody>
+</table>
+{% endblock %}

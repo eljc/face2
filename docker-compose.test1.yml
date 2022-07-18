@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  web:
+    build: ./services/web
+    command: python manage.py run -h 0.0.0.0
+    volumes:
+      - static_volume:/usr/src/app/project/static
+      - media_volume:/usr/src/app/project/media
+    ports:
+      - 5000:5000
+    env_file:
+      - ./.env.dev
+    depends_on:
+      - db
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=face_app
+      - POSTGRES_PASSWORD=face_app
+      - POSTGRES_DB=face_app_dev
+  nginx:
+    build: ./services/nginx
+    volumes:
+      - static_volume:/usr/src/app/project/static
+      - media_volume:/usr/src/app/project/media
+    ports:
+      - 1337:80
+      - "443:443"
+    depends_on:
+      - web
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
