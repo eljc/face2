@@ -4,6 +4,7 @@ import cv2
 from sqlalchemy.orm import relationship
 from sqlalchemy import ForeignKey, select
 from werkzeug.utils import secure_filename
+from datetime import datetime, timezone
 from flask import (
     Flask,
     jsonify,
@@ -17,7 +18,8 @@ from flask import (
 )
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image
-from .api_face import *
+#from .api_face import *
+import api_face
 
 app = Flask(__name__)
 app.config.from_object("project.config.Config")
@@ -70,7 +72,6 @@ def hello_world():
 def upload_file():
 
     nome = request.form['nome']
-    print(nome)
 
     if 'file' not in request.files:
         flash('No file part')
@@ -86,8 +87,6 @@ def upload_file():
         file.save(os.path.join(app.config["MEDIA_FOLDER"], nome+'.jpg'))        
         # print('upload_image filename: ' + filename)
         flash('Imagem enviada com sucesso')
-        print('filename', filename)
-        print(app.config["MEDIA_FOLDER"])
         arquivo = app.config["MEDIA_FOLDER"]+'/'+filename
         acolhido = Acolhido(nome=nome, nome_foto=filename, foto=arquivo)
         db.session.add(acolhido)
@@ -106,7 +105,46 @@ def display_image(filename):
 
 @app.route('/reconhecer')
 def local():
-    return render_template('local.html')
+    statement = db.select(Acolhido)    
+    acolhidos = db.session.execute(statement).all()    
+    print('TIPO ACOLHIDOS> ', type(acolhidos))
+    global lista_nomes 
+    global lista_imagens
+    for aco in acolhidos:        
+        for a in aco:
+            lista_nomes.append(a.nome)
+            lista_imagens.append(a.foto)
+    
+    return render_template('reconhecer.html')
+
+def registrar_db(nome_acolhido):
+    global lista_nomes
+    global lista_imagens
+
+    if nome_acolhido:
+        resultado = Acolhido.query.filter_by(nome=nome_acolhido).first()
+        id_acolhido = resultado.id_acolhido
+        registro = Registro(acolhido=id_acolhido, data_e_hora_registro=datetime.utcnow())
+        db.session.add(registro)
+
+        try:
+            db.session.commit()
+            print('lista de nomes: ', lista_nomes)
+            indice = lista_nomes.index(nome_acolhido)
+            print('remover da lista indice: ', indice, 'Tamnho: ', len(lista_nomes))
+            lista_nomes.remove(nome_acolhido)
+            valor_remover = lista_imagens[indice]
+            lista_imagens.remove(valor_remover)
+        except Exception as e:
+            print(e)
+        else:
+            print('OK')
+
+class Registros_class:
+    def __init__(self, nome, data, hora):
+        self.nome = nome
+        self.data = data
+        self.hora = hora
 
 @app.route('/video')
 def remote():
@@ -114,15 +152,32 @@ def remote():
 
 @app.route('/lista')
 def lista():
-    print('busca por registros')
-    return render_template('lista.html')
+    statement = db.select(Acolhido.nome, Registro.data_e_hora_registro).join(Registro).order_by(Registro.data_e_hora_registro.desc())
+    # list of tuples
+    registros  = db.session.execute(statement).all()
+    #print(type(registros))
+    lista_registros = []
+    for reg in registros:
+        nome = reg.nome
+        data = reg.data_e_hora_registro.strftime('%d/%m/%Y')
+        hora = reg.data_e_hora_registro.strftime('%H:%M:%S')
+        registro = Registros_class(nome, data, hora)        
+        lista_registros.append(registro)
+    return render_template('lista.html', registros=lista_registros)
 
 @app.route('/image', methods=['POST'])
 def image():
+    global lista_nomes 
+    global lista_imagens
+    nome_acolhido = ''
+    faces_codificadas = api_face.obter_imagens_codificadas(lista_imagens)
+    #print(faces_codificadas)
+    #print('Posicao Lista Geral: ', acolhidos)
+
     try:
         image_file = request.files['image']  # get the image
 
-        print("image_file", image_file)
+        #print("image_file", image_file)
 
         # Set an image confidence threshold value to limit returned data
         threshold = request.form.get('threshold')
@@ -144,10 +199,16 @@ def image():
             uploadHeight = float(uploadHeight)
         # finally run the image through tensor flow object detection`
         # image_object = cv2.imread('face-images/mike/tuan.jpg')
-        image_object = cv2.imdecode(numpy.fromstring(image_file.read(), numpy.uint8), cv2.IMREAD_UNCHANGED)
-        response = api_face.predict(image_object, threshold, uploadWidth, uploadHeight)
+        image_object = cv2.imdecode(numpy.frombuffer(image_file.read(), numpy.uint8), cv2.IMREAD_UNCHANGED)
+        #response = api_face.predict(image_object, threshold, uploadWidth, uploadHeight)
 
-        print('response', response)
+        response, nome_acolhido = api_face.predict(image_object, threshold, uploadWidth, uploadHeight, faces_codificadas, lista_nomes)
+
+        #print(type(response))        
+        #print(response.find('nome_imagem'))
+        registrar_db(nome_acolhido)
+
+        #print('response', response)
         return response
 
     except Exception as e:
